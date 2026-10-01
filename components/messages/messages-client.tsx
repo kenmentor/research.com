@@ -118,7 +118,7 @@ export function MessagesClient({ initialId }: { initialId: string | null }) {
           }}
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
           {/* List — full screen on mobile unless a thread is open */}
           <div className={selected ? "hidden md:block" : "block"}>
             <Tabs value={box} onValueChange={(v) => setBox(v as "inbox" | "requests")}>
@@ -371,7 +371,7 @@ function ThreadPane({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="md:hidden"
+          className="xl:hidden"
           onClick={onBack}
           aria-label="Back to conversations"
         >

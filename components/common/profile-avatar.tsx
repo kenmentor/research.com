@@ -1,7 +1,6 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
 
 export interface ProfileAvatarProps {
   /** Remote image URL. Falls back to initials when empty or broken. */

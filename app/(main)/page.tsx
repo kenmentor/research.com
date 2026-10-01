@@ -70,7 +70,7 @@ export default async function HomePage() {
     return (
       <PageShell gap="lg">
         {/* Hero */}
-        <section className="flex flex-col gap-5 py-6 sm:py-10">
+        <section className="flex flex-col gap-5 py-2 sm:py-4">
           <div className="max-w-2xl space-y-3">
             <p className="text-primary text-sm font-semibold tracking-wide uppercase">
               For researchers
@@ -78,30 +78,15 @@ export default async function HomePage() {
             <h1 className="font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-4xl">
               A professional network for the people doing the research.
             </h1>
-            <p className="text-muted-foreground max-w-prose text-base leading-relaxed text-pretty sm:text-lg">
+            <p className="text-muted-foreground max-w-prose text-base leading-relaxed text-pretty">
               Find collaborators, keep your publications attached to your
-              profile, and follow the work in your field — without turning
-              yourself into a marketing page.
+              profile, and follow the work in your field.
             </p>
           </div>
 
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-            <Button size="lg" render={<Link href="/login" />} className="sm:px-6">
-              Join the network <ArrowRight className="size-4" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              render={<Link href="/discover" />}
-              className="sm:px-6"
-            >
-              Browse first
-            </Button>
-          </div>
-
           {/* Working search, same target the discover hub uses. */}
-          <Card className="bg-brand-soft/40 ring-primary/20 mt-2">
-            <CardContent className="py-5">
+          <Card className="bg-brand-soft/40 ring-primary/20">
+            <CardContent className="py-4">
               <form
                 action="/discover/people"
                 method="get"
@@ -128,11 +113,25 @@ export default async function HomePage() {
               </form>
             </CardContent>
           </Card>
+
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+            <Button size="lg" render={<Link href="/login" />} className="sm:px-6">
+              Join the network <ArrowRight className="size-4" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              render={<Link href="/discover" />}
+              className="sm:px-6"
+            >
+              Browse first
+            </Button>
+          </div>
         </section>
 
         <section className="flex flex-col gap-3">
           <SectionHeading title="What you get" />
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {PILLARS.map(({ icon: Icon, title, body }) => (
               <li key={title}>
                 <Card className="h-full">
@@ -177,72 +176,73 @@ export default async function HomePage() {
           </section>
         )}
 
-        <section className="flex flex-col gap-3">
-          <SectionHeading
-            title="Most cited papers"
-            action={
-              <Button
-                variant="ghost"
-                size="sm"
-                render={<Link href="/discover/papers?sort=cited" />}
-              >
-                See all <ArrowRight className="size-3.5" />
-              </Button>
-            }
-          />
-          {papers.length === 0 ? (
-            <EmptyState
-              title="No papers yet"
-              description="Publications appear here as researchers add them."
-              icon={Sparkles}
-            />
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {papers.map((p) => (
-                <PaperRow
-                  key={String(p._id)}
-                  paper={{ ...p, _id: String(p._id) }}
-                  showAbstract
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <SectionHeading
-            title="Researchers to know"
-            action={
-              <Button variant="ghost" size="sm" render={<Link href="/discover/people" />}>
-                See all <ArrowRight className="size-3.5" />
-              </Button>
-            }
-          />
-          {people.length === 0 ? (
-            <EmptyState
-              title="No researchers yet"
-              description="Be the first to join and start building your profile."
-              secondaryAction={
-                <Button render={<Link href="/login" />}>Join the network</Button>
+        {/* Papers and people sit side by side rather than as two tall stacked
+            sections — one glance instead of a long scroll. */}
+        <section className="grid gap-6 md:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-3">
+            <SectionHeading
+              title="Most cited papers"
+              action={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  render={<Link href="/discover/papers?sort=cited" />}
+                >
+                  See all <ArrowRight className="size-3.5" />
+                </Button>
               }
             />
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {people.map((p) => (
-                <PersonRow
-                  key={String(p._id)}
-                  person={{
-                    _id: String(p._id),
-                    username: p.username,
-                    displayName: p.displayName,
-                    headline: p.headline,
-                    affiliation: p.affiliation,
-                    interests: p.interests ?? [],
-                  }}
-                />
-              ))}
-            </div>
-          )}
+            {papers.length === 0 ? (
+              <EmptyState
+                title="No papers yet"
+                description="Publications appear here as researchers add them."
+                icon={Sparkles}
+              />
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {papers.map((p) => (
+                  <PaperRow key={String(p._id)} paper={{ ...p, _id: String(p._id) }} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-3">
+            <SectionHeading
+              title="Researchers to know"
+              action={
+                <Button variant="ghost" size="sm" render={<Link href="/discover/people" />}>
+                  See all <ArrowRight className="size-3.5" />
+                </Button>
+              }
+            />
+            {people.length === 0 ? (
+              <EmptyState
+                title="No researchers yet"
+                description="Be the first to join and start building your profile."
+                secondaryAction={
+                  <Button render={<Link href="/login" />}>Join the network</Button>
+                }
+              />
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {people.map((p) => (
+                  <PersonRow
+                    key={String(p._id)}
+                    person={{
+                      _id: String(p._id),
+                      username: p.username,
+                      displayName: p.displayName,
+                      headline: p.headline,
+                      affiliation: p.affiliation,
+                      interests: p.interests ?? [],
+                      avatarUrl: p.avatarUrl || undefined,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </PageShell>
     );

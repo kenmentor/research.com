@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { BottomTabs } from "./bottom-tabs";
 import { MiniProfile } from "./mini-profile";
 import { RightRail } from "./right-rail";
+import { RailSlot } from "./rail-slot";
 import { SideNav } from "./side-nav";
 import { TopNav } from "./top-nav";
 import { SearchPalette } from "@/components/search/search-palette";
@@ -10,7 +11,7 @@ import { ProfileModel } from "@/models/profile";
 
 interface AppShellProps {
   children: React.ReactNode;
-  /** Right rail is contextual — message threads hide it. */
+  /** Set false to drop the right rail entirely; RailSlot also hides it per-route. */
   showRail?: boolean;
   unreadCount?: number;
 }
@@ -25,8 +26,11 @@ interface AppShellProps {
  *   1024px+  left rail appears, bottom tabs retire
  *   1280px+  right rail joins, giving the full three-column desktop
  *
- * The centre column is capped at 46rem so abstracts and bios keep a
- * comfortable measure instead of stretching on wide monitors.
+ * The centre column is capped at 52rem so abstracts and bios keep a
+ * comfortable measure instead of stretching on wide monitors. The right
+ * rail is suppressed on routes that bring their own secondary column
+ * (see rail-slot.tsx) — otherwise three columns fight for the same space
+ * and the content column collapses to roughly 370px on a 1024px screen.
  */
 export async function AppShell({
   children,
@@ -61,10 +65,14 @@ export async function AppShell({
           <MiniProfile />
           <SideNav />
         </div>
-        <main className="mx-auto w-full min-w-0 max-w-[46rem] flex-1 lg:mx-0">
+        <main className="mx-auto w-full min-w-0 max-w-[52rem] flex-1 lg:mx-0">
           {children}
         </main>
-        {showRail && <RightRail />}
+        {showRail && (
+          <RailSlot>
+            <RightRail />
+          </RailSlot>
+        )}
       </div>
       <BottomTabs unreadCount={unreadCount} username={username} />
       <SearchPalette />

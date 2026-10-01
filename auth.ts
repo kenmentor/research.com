@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 import { z } from "zod";
 import { syncUserByEmail } from "./lib/auth-user";
+import { isValidDevPassword } from "./lib/dev-login";
 
 const providers: Provider[] = [];
 
@@ -31,12 +32,25 @@ if (process.env.NODE_ENV !== "production") {
       credentials: {
         email: { label: "Email", type: "email" },
         name: { label: "Name", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       authorize: async (raw) => {
         const parsed = z
-          .object({ email: z.string().email(), name: z.string().optional() })
+          .object({
+            email: z.string().email(),
+            name: z.string().optional(),
+            password: z.string().optional(),
+          })
           .safeParse(raw);
         if (!parsed.success) return null;
+        // A password is optional for backwards compatibility, but if one is
+        // supplied it must be the dev password. Never a real credential.
+        if (
+          parsed.data.password !== undefined &&
+          !isValidDevPassword(parsed.data.password)
+        ) {
+          return null;
+        }
         const dbUser = await syncUserByEmail(parsed.data.email, parsed.data.name);
         return {
           id: String(dbUser._id),

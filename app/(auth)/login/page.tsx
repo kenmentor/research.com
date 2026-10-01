@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/auth/login-form";
+import { DEMO_EMAIL, DEV_LOGIN_PASSWORD } from "@/lib/dev-login";
 
 export default async function LoginPage({
   searchParams,
@@ -12,6 +13,8 @@ export default async function LoginPage({
     google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
     resend: Boolean(process.env.RESEND_API_KEY),
     dev: process.env.NODE_ENV !== "production",
+    devPassword: DEV_LOGIN_PASSWORD,
+    demoEmail: DEMO_EMAIL,
   };
 
   return <LoginForm providers={providers} callbackUrl={callbackUrl ?? "/"} />;

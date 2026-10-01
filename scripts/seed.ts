@@ -17,6 +17,7 @@
  * Sign in as any seeded persona using the dev credentials provider
  * (any email, no password) — the emails are logged at the end.
  */
+import { Types } from "mongoose";
 import { connectDB } from "../lib/db";
 import { getEnv } from "../lib/env";
 import { computeCompleteness } from "../lib/profile";
@@ -1661,6 +1662,73 @@ export interface SeedResult {
   emails: string[];
 }
 
+/**
+ * Remove artefacts of the original placeholder seed.
+ *
+ * That version created `seed01@researcher.local` accounts carrying generic
+ * titles like "Community health in West Africa: study 4". They are matched by
+ * their exact email pattern so real accounts are never touched, and removing
+ * them keeps /discover and search free of filler rows. Called before the
+ * personas are upserted, because one legacy username collides with a persona.
+ */
+async function removeLegacySeedData(): Promise<void> {
+  const legacyUsers = await UserModel.find({
+    email: /^seed\d+@researcher\.local$/,
+  })
+    .select("_id")
+    .lean();
+  const legacyIds = legacyUsers.map((u) => u._id);
+  if (legacyIds.length === 0) return;
+
+  const legacyProfiles = await ProfileModel.find({ userId: { $in: legacyIds } })
+    .select("_id")
+    .lean();
+  const legacyProfileIds = legacyProfiles.map((x) => x._id);
+  const legacyConversations = await ConversationModel.find({
+    participants: { $in: legacyProfileIds },
+  })
+    .select("_id")
+    .lean();
+
+  await Promise.all([
+    MessageModel.deleteMany({
+      conversationId: { $in: legacyConversations.map((c) => c._id) },
+    }),
+    ConversationModel.deleteMany({ participants: { $in: legacyProfileIds } }),
+    NotificationModel.deleteMany({ recipient: { $in: legacyProfileIds } }),
+    TopicFollowModel.deleteMany({ profile: { $in: legacyProfileIds } }),
+    CommentModel.deleteMany({ author: { $in: legacyProfileIds } }),
+    LikeModel.deleteMany({ profile: { $in: legacyProfileIds } }),
+    SaveModel.deleteMany({ profile: { $in: legacyProfileIds } }),
+    PostModel.deleteMany({ author: { $in: legacyProfileIds } }),
+    PublicationModel.deleteMany({ owner: { $in: legacyProfileIds } }),
+    BlockModel.deleteMany({
+      $or: [
+        { blocker: { $in: legacyProfileIds } },
+        { blocked: { $in: legacyProfileIds } },
+      ],
+    }),
+    FollowModel.deleteMany({
+      $or: [
+        { follower: { $in: legacyProfileIds } },
+        { following: { $in: legacyProfileIds } },
+      ],
+    }),
+    ConnectionModel.deleteMany({
+      $or: [
+        { requester: { $in: legacyProfileIds } },
+        { recipient: { $in: legacyProfileIds } },
+      ],
+    }),
+    ProfileModel.deleteMany({ _id: { $in: legacyProfileIds } }),
+    UserModel.deleteMany({ _id: { $in: legacyIds } }),
+  ]);
+
+  console.log(
+    `[seed] removed ${legacyProfileIds.length} legacy placeholder profiles.`,
+  );
+}
+
 export async function runSeed(): Promise<SeedResult> {
   getEnv();
   await connectDB();
@@ -1674,6 +1742,13 @@ export async function runSeed(): Promise<SeedResult> {
     list.push(persona);
     byField.set(persona.field, list);
   }
+
+  // Legacy cleanup runs FIRST, before profiles are claimed. The original
+  // placeholder seed owned `seedNN@researcher.local` users, and one of its
+  // usernames (amara.okafor) collides with a persona here — upserting first
+  // would leave that profile pointing at a legacy user and deleting it
+  // afterwards would orphan everything written under it.
+  await removeLegacySeedData();
 
   // --- users + profiles -------------------------------------------------
   const idByUsername = new Map<string, string>();
@@ -2124,17 +2199,21 @@ function threadKeyOf(thread: { pair: [string, string] }): string {
  * collections, so the demo data is internally consistent.
  */
 async function recomputeCounters(ids: string[]): Promise<void> {
+  // Aggregation pipelines are NOT schema-cast by Mongoose, so ObjectIds have
+  // to be built explicitly — a `$in` of strings silently matches nothing.
+  const oid = ids.map((id) => new Types.ObjectId(id));
+
   const [acceptedConnections, followerRows, followingRows, postCounts, commentCounts, repostCounts] =
     await Promise.all([
       ConnectionModel.find({ status: "accepted" })
         .select("requester recipient")
         .lean(),
       FollowModel.aggregate<{ _id: string; n: number }>([
-        { $match: { following: { $in: ids } } },
+        { $match: { following: { $in: oid } } },
         { $group: { _id: "$following", n: { $sum: 1 } } },
       ]),
       FollowModel.aggregate<{ _id: string; n: number }>([
-        { $match: { follower: { $in: ids } } },
+        { $match: { follower: { $in: oid } } },
         { $group: { _id: "$follower", n: { $sum: 1 } } },
       ]),
       LikeModel.aggregate<{ _id: string; n: number }>([

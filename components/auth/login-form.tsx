@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,8 @@ export interface LoginProviders {
   google: boolean;
   resend: boolean;
   dev: boolean;
+  devPassword: string;
+  demoEmail: string;
 }
 
 export function LoginForm({
@@ -21,8 +24,10 @@ export function LoginForm({
   providers: LoginProviders;
   callbackUrl: string;
 }) {
-  const [email, setEmail] = useState("");
+  // Prefilled so the seeded demo account is one click away in development.
+  const [email, setEmail] = useState(providers.dev ? providers.demoEmail : "");
   const [name, setName] = useState("");
+  const [password, setPassword] = useState(providers.dev ? providers.devPassword : "");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,12 +49,17 @@ export function LoginForm({
     const res = await signIn("credentials", {
       email,
       name: name || undefined,
+      password,
       callbackUrl,
       redirect: false,
     });
     setBusy(false);
-    if (res?.error) setError("Dev sign-in failed. Check the email address.");
-    else if (res?.url) window.location.assign(res.url);
+    if (res?.error || !res?.url) {
+      setError("Dev sign-in failed. Check the email and password.");
+      return;
+    }
+    toast.success("Signed in.");
+    window.location.assign(res.url);
   }
 
   return (
@@ -119,18 +129,31 @@ export function LoginForm({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seed01@researcher.local"
+                    placeholder="amara.okafor@researcher.local"
                   />
-                  <Label htmlFor="dev-name">Name (new accounts)</Label>
+                  <Label htmlFor="dev-password">Password</Label>
+                  <Input
+                    id="dev-password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                  <Label htmlFor="dev-name">Name (new accounts only)</Label>
                   <Input
                     id="dev-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Amara Okafor"
+                    placeholder="Leave blank for a seeded account"
                   />
                   <Button type="submit" variant="secondary" disabled={busy}>
-                    Sign in (dev, no password)
+                    Sign in
                   </Button>
+                  <p className="text-muted-foreground text-xs">
+                    Pre-filled with a seeded demo account. Any other email creates a new
+                    profile on first sign-in.
+                  </p>
                 </div>
               </form>
             )}
